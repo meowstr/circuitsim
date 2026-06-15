@@ -262,6 +262,7 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
         char * nc_str = strtok( nullptr, delims );
         char * nb_str = strtok( nullptr, delims );
         char * ne_str = strtok( nullptr, delims );
+        char * bjt_type = strtok( nullptr, delims );
 
         int nc = find_unknown_index( nc_str );
         int nb = find_unknown_index( nb_str );
@@ -275,15 +276,28 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
         double beta_f = 100.;
         double Vbe = x[ nb ] - x[ ne ];
         double Vbc = x[ nb ] - x[ nc ];
+        double dir = 1.;
+
+        if ( strcmp( bjt_type, "npn" ) == 0 ) {
+            dir = 1.;
+        } else if ( strcmp( bjt_type, "pnp" ) == 0 ) {
+            dir = 1.; // derivatives flip sign again
+            Vbe *= -1.;
+            Vbc *= -1.;
+        } else {
+            printf( "unknown bjt type: %s\n", bjt_type );
+            return 0;
+        }
         if ( strcmp( eq_name, nc_str ) == 0 ) {
             if ( strcmp( unknown, nc_str ) == 0 )
-                return ( -Is / Vt ) *
+                return dir * ( -Is / Vt ) *
                        ( exp( Vbc / Vt ) + ( 1. / beta_r ) * exp( Vbc / Vt ) );
             if ( strcmp( unknown, nb_str ) == 0 )
-                return ( -Is / Vt ) * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
-                                        ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+                return dir * ( -Is / Vt ) *
+                       ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
+                         ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
             if ( strcmp( unknown, ne_str ) == 0 )
-                return -( -Is / Vt ) * exp( Vbe / Vt );
+                return dir * -( -Is / Vt ) * exp( Vbe / Vt );
 
             return 0;
 
@@ -292,12 +306,13 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
         }
         if ( strcmp( eq_name, nb_str ) == 0 ) {
             if ( strcmp( unknown, nc_str ) == 0 )
-                return -( -Is / Vt ) * ( 1. / beta_r ) * exp( Vbc / Vt );
+                return dir * -( -Is / Vt ) * ( 1. / beta_r ) * exp( Vbc / Vt );
             if ( strcmp( unknown, nb_str ) == 0 )
-                return ( -Is / Vt ) * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) +
-                                        ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+                return dir * ( -Is / Vt ) *
+                       ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) +
+                         ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
             if ( strcmp( unknown, ne_str ) == 0 )
-                return -( -Is / Vt ) * ( 1. / beta_f ) * exp( Vbe / Vt );
+                return dir * -( -Is / Vt ) * ( 1. / beta_f ) * exp( Vbe / Vt );
 
             return 0;
 
@@ -306,13 +321,15 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
         }
         if ( strcmp( eq_name, ne_str ) == 0 ) {
             if ( strcmp( unknown, nc_str ) == 0 )
-                return ( Is / Vt ) * exp( Vbc / Vt );
+                return dir * ( Is / Vt ) * exp( Vbc / Vt );
             if ( strcmp( unknown, nb_str ) == 0 )
-                return ( Is / Vt ) * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
-                                       ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) );
+                return dir * ( Is / Vt ) *
+                       ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
+                         ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) );
             if ( strcmp( unknown, ne_str ) == 0 )
-                return ( Is / Vt ) * ( -exp( Vbe / Vt ) +
-                                       ( 1. / beta_f ) * ( -exp( Vbe / Vt ) ) );
+                return dir * ( Is / Vt ) *
+                       ( -exp( Vbe / Vt ) +
+                         ( 1. / beta_f ) * ( -exp( Vbe / Vt ) ) );
 
             return 0;
 
@@ -419,6 +436,7 @@ static double evaluate_term( double * x, char * term, char * eq_name )
         char * nc_str = strtok( nullptr, delims );
         char * nb_str = strtok( nullptr, delims );
         char * ne_str = strtok( nullptr, delims );
+        char * bjt_type = strtok( nullptr, delims );
 
         int nc = find_unknown_index( nc_str );
         int nb = find_unknown_index( nb_str );
@@ -432,19 +450,35 @@ static double evaluate_term( double * x, char * term, char * eq_name )
         double beta_f = 100.;
         double Vbe = x[ nb ] - x[ ne ];
         double Vbc = x[ nb ] - x[ nc ];
+        double dir = 1.;
+
+        if ( strcmp( bjt_type, "npn" ) == 0 ) {
+            dir = 1.;
+        } else if ( strcmp( bjt_type, "pnp" ) == 0 ) {
+            dir = -1.;
+            Vbe *= -1;
+            Vbc *= -1;
+        } else {
+            printf( "unknown bjt type: %s\n", bjt_type );
+            return 0;
+        }
+
         if ( strcmp( eq_name, nc_str ) == 0 ) {
             // NOTE: negative because I_c sinks current
-            return -Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
-                           ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+            return dir * -Is *
+                   ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
+                     ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
         }
         if ( strcmp( eq_name, nb_str ) == 0 ) {
             // NOTE: negative because I_b sinks current
-            return -Is * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) +
-                           ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+            return dir * -Is *
+                   ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) +
+                     ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
         }
         if ( strcmp( eq_name, ne_str ) == 0 ) {
-            return Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
-                          ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) );
+            return dir * Is *
+                   ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
+                     ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) );
         }
 
         printf( "bjt not in kcl equation\n" );
@@ -554,10 +588,11 @@ static void parse_q( char * command )
     char * nc = strtok( nullptr, delims );
     char * nb = strtok( nullptr, delims );
     char * ne = strtok( nullptr, delims );
+    char * type = strtok( nullptr, delims );
 
     // add transport equations to each kcl
 
-    snprintf( buffer, 1024, "q %s %s %s", nc, nb, ne );
+    snprintf( buffer, 1024, "q %s %s %s %s", nc, nb, ne, type );
     add_to_kcl( nc, buffer );
     add_to_kcl( nb, buffer );
     add_to_kcl( ne, buffer );

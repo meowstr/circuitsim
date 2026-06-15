@@ -1,0 +1,5 @@
+v1 0 3v 3
+v2 0 5v 5
+q1 q1c q1b 5v pnp
+r1 3v q1b 1000
+r2 0 q1c 1
