@@ -78,7 +78,7 @@ backtrack:
     double norm2 = 0;
     for ( int i = 0; i < n; i++ )
         norm2 = fmax( norm2, abs( fx[ i ] - old_fx[ i ] ) );
-    if ( norm2 > 50. ) {
+    if ( norm2 > 10. ) {
         alpha /= 2.;
         printf(
             "root_newton_step: backtrack (dx = %lf df = %lf) \n",
@@ -127,7 +127,7 @@ static double V_A = 10.; // early voltage
 
 static double eber_moll( double vbe, double vce )
 {
-    return 1E-13 * exp( vbe * 40. ) * ( 1. + vce / V_A );
+    return 1E-13 * ( exp( vbe * 40. ) - 1. ) * ( 1. + vce / V_A );
 }
 
 static double eber_moll_partial_vbe( double vbe, double vce )
@@ -137,7 +137,7 @@ static double eber_moll_partial_vbe( double vbe, double vce )
 
 static double eber_moll_partial_vce( double vbe, double vce )
 {
-    return 1E-13 * exp( vbe * 40. ) * ( 1. / V_A );
+    return 1E-13 * ( exp( vbe * 40. ) - 1. ) * ( 1. / V_A );
 }
 
 static double early_beta( double vce )
@@ -258,6 +258,72 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
         return 0;
     }
 
+    if ( term[ 0 ] == 'q' ) {
+        char * nc_str = strtok( nullptr, delims );
+        char * nb_str = strtok( nullptr, delims );
+        char * ne_str = strtok( nullptr, delims );
+
+        int nc = find_unknown_index( nc_str );
+        int nb = find_unknown_index( nb_str );
+        int ne = find_unknown_index( ne_str );
+
+        // transport equations:
+        // https://en.wikipedia.org/wiki/Bipolar_junction_transistor#Ebers%E2%80%93Moll_model
+        double Is = 1E-13;
+        double Vt = 25. / 1000.;
+        double beta_r = 10.;
+        double beta_f = 100.;
+        double Vbe = x[ nb ] - x[ ne ];
+        double Vbc = x[ nb ] - x[ nc ];
+        if ( strcmp( eq_name, nc_str ) == 0 ) {
+            if ( strcmp( unknown, nc_str ) == 0 )
+                return ( -Is / Vt ) *
+                       ( exp( Vbc / Vt ) + ( 1. / beta_r ) * exp( Vbc / Vt ) );
+            if ( strcmp( unknown, nb_str ) == 0 )
+                return ( -Is / Vt ) * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
+                                       ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+            if ( strcmp( unknown, ne_str ) == 0 )
+                return -( -Is / Vt ) * exp( Vbe / Vt );
+
+            return 0;
+
+            // return -Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
+            //               ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+        }
+        if ( strcmp( eq_name, nb_str ) == 0 ) {
+            if ( strcmp( unknown, nc_str ) == 0 )
+                return -( -Is / Vt ) * ( 1. / beta_r ) * exp( Vbc / Vt );
+            if ( strcmp( unknown, nb_str ) == 0 )
+                return ( -Is / Vt ) * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) +
+                                       ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+            if ( strcmp( unknown, ne_str ) == 0 )
+                return -( -Is / Vt ) * ( 1. / beta_f ) * exp( Vbe / Vt );
+
+            return 0;
+
+            // return -Is * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) +
+            //               ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+        }
+        if ( strcmp( eq_name, ne_str ) == 0 ) {
+            if ( strcmp( unknown, nc_str ) == 0 )
+                return ( Is / Vt ) * exp( Vbc / Vt );
+            if ( strcmp( unknown, nb_str ) == 0 )
+                return ( Is / Vt ) * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
+                                       ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) );
+            if ( strcmp( unknown, ne_str ) == 0 )
+                return ( Is / Vt ) * ( -exp( Vbe / Vt ) +
+                                       ( 1. / beta_f ) * ( -exp( Vbe / Vt ) ) );
+
+            return 0;
+
+            // return Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
+            //               ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) );
+        }
+
+        printf( "bjt not in kcl equation\n" );
+        return 0;
+    }
+
     printf( "unknown equation term: %s\n", term );
 
     return 0;
@@ -347,6 +413,42 @@ static double evaluate_term( double * x, char * term, char * eq_name )
         double voltage = atof( voltage_str );
 
         return ( x[ n2 ] - x[ n1 ] ) - voltage;
+    }
+
+    if ( term[ 0 ] == 'q' ) {
+        char * nc_str = strtok( nullptr, delims );
+        char * nb_str = strtok( nullptr, delims );
+        char * ne_str = strtok( nullptr, delims );
+
+        int nc = find_unknown_index( nc_str );
+        int nb = find_unknown_index( nb_str );
+        int ne = find_unknown_index( ne_str );
+
+        // transport equations:
+        // https://en.wikipedia.org/wiki/Bipolar_junction_transistor#Ebers%E2%80%93Moll_model
+        double Is = 1E-13;
+        double Vt = 25. / 1000.;
+        double beta_r = 10.;
+        double beta_f = 100.;
+        double Vbe = x[ nb ] - x[ ne ];
+        double Vbc = x[ nb ] - x[ nc ];
+        if ( strcmp( eq_name, nc_str ) == 0 ) {
+            // NOTE: negative because I_c sinks current
+            return -Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
+                          ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+        }
+        if ( strcmp( eq_name, nb_str ) == 0 ) {
+            // NOTE: negative because I_b sinks current
+            return -Is * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) +
+                          ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+        }
+        if ( strcmp( eq_name, ne_str ) == 0 ) {
+            return Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
+                          ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) );
+        }
+
+        printf( "bjt not in kcl equation\n" );
+        return 0;
     }
 
     printf( "unknown equation term: %s\n", term );
@@ -453,13 +555,12 @@ static void parse_q( char * command )
     char * nb = strtok( nullptr, delims );
     char * ne = strtok( nullptr, delims );
 
-    // add to nc KCL: -Is e^((nb - ne)/V_T)
-    // add to ne KCL: (b + 1) / b * Is e^((nb - ne)/V_T)
-    // add to nb KCL: 1 / b * -Is e^((nb - ne)/V_T)
+    // add transport equations to each kcl
 
-    // snprintf( buffer, 1024, "r %s %s %s", n1, n2, ohms );
-    // add_to_kcl( n1, buffer );
-    // add_to_kcl( n2, buffer );
+    snprintf( buffer, 1024, "q %s %s %s", nc, nb, ne );
+    add_to_kcl( nc, buffer );
+    add_to_kcl( nb, buffer );
+    add_to_kcl( ne, buffer );
 }
 
 int main( int argc, char ** argv )
@@ -482,12 +583,16 @@ int main( int argc, char ** argv )
     while ( fgets( line, 1024, f ) ) {
         char * command = strtok( line, delims );
 
+        if ( !command ) continue;
+
         if ( command[ 0 ] == 'v' )
             parse_v( command );
         else if ( command[ 0 ] == 'r' )
             parse_r( command );
         else if ( command[ 0 ] == 'd' )
             parse_d( command );
+        else if ( command[ 0 ] == 'q' )
+            parse_q( command );
         else
             printf( "wtf did u type: %s\n", command );
     }
