@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h> // getopt
 
 #include <vector>
 
@@ -12,6 +13,8 @@ static const char * delims = " \n\t";
 
 static void evaluate_system( double * x, double * out );
 static void evaluate_jacobian( double * x, double * out );
+
+static int verbose = 0;
 
 static void root_newton_step( int n, double * x )
 {
@@ -26,7 +29,7 @@ static void root_newton_step( int n, double * x )
     static double * new_x;
 
     if ( n != old_n ) {
-        printf( "root_newton_step: allocate (n = %d)\n", n );
+        if ( verbose ) printf( "root_newton_step: allocate (n = %d)\n", n );
         a = (double *) malloc( n * n * sizeof( double ) );
         b = (double *) malloc( n * sizeof( double ) );
         ipiv = (int *) malloc( n * sizeof( int ) );
@@ -53,7 +56,7 @@ static void root_newton_step( int n, double * x )
     // solution stored in b
 
     if ( info ) {
-        printf( "root_newton_step: dgesv failed\n" );
+        if ( verbose ) printf( "root_newton_step: dgesv failed\n" );
         return;
     }
 
@@ -80,11 +83,13 @@ backtrack:
         norm2 = fmax( norm2, abs( fx[ i ] - old_fx[ i ] ) );
     if ( norm2 > 10. ) {
         alpha /= 2.;
-        printf(
-            "root_newton_step: backtrack (dx = %.2le df = %.2le) \n",
-            norm1,
-            norm2
-        );
+        if ( verbose ) {
+            printf(
+                "root_newton_step: backtrack (dx = %.2le df = %.2le) \n",
+                norm1,
+                norm2
+            );
+        }
         goto backtrack;
     }
 
@@ -104,23 +109,25 @@ static void root_newton( int n, double * x )
     }
 
     for ( int i = 0; i < 20; i++ ) {
-        evaluate_system( x, fx );
+        if ( verbose ) {
+            evaluate_system( x, fx );
 
-        printf( "root_newton: " );
-        printf( "F( " );
-        for ( int k = 0; k < n; k++ ) {
-            printf( "% .2le ", x[ k + 1 ] );
+            printf( "root_newton: " );
+            printf( "F( " );
+            for ( int k = 0; k < n; k++ ) {
+                printf( "% .2le ", x[ k + 1 ] );
+            }
+            printf( ") = " );
+            for ( int k = 0; k < n; k++ ) {
+                printf( "% .2le ", fx[ k ] );
+            }
+            printf( "\n" );
         }
-        printf( ") = " );
-        for ( int k = 0; k < n; k++ ) {
-            printf( "% .2le ", fx[ k ] );
-        }
-        printf( "\n" );
 
         root_newton_step( n, x );
     }
 
-    printf( "\n" );
+    if ( verbose ) printf( "\n" );
 }
 
 static double V_A = 10.; // early voltage
@@ -540,7 +547,7 @@ static void parse_v( char * command )
     // add to n2 KCL: i
 
     char current_name[ 32 ];
-    snprintf( current_name, 32, "i%d", sys.next_current_id++ );
+    snprintf( current_name, 32, "i_%s", command );
     sys.unknown_list.push_back( strdup( current_name ) );
 
     snprintf( buffer, 1024, "v %s %s %s", n1, n2, voltage );
@@ -600,14 +607,29 @@ static void parse_q( char * command )
 
 int main( int argc, char ** argv )
 {
-    if ( argc < 2 ) return 0;
+    verbose = 1;
+
+    int opt;
+    while ( ( opt = getopt( argc, argv, "s" ) ) != -1 ) {
+        if ( opt == 's' ) {
+            verbose = 0;
+        }
+        if ( opt == '?' ) {
+            printf( "%s [-s] filename\n", argv[ 0 ] );
+            return 1;
+        }
+    }
 
     // dummy unknown for ground, not actually solved for
     sys.unknown_list.push_back( strdup( "0" ) );
 
-    printf( "loading %s...\n", argv[ 1 ] );
-
-    FILE * f = fopen( argv[ 1 ], "r" );
+    FILE * f;
+    if ( optind < argc ) {
+        f = fopen( argv[ optind ], "r" );
+    } else {
+        f = stdin;
+        printf( "reading stdin\n" );
+    }
 
     if ( !f ) {
         printf( "failed to read file\n" );
@@ -628,26 +650,30 @@ int main( int argc, char ** argv )
             parse_d( command );
         else if ( command[ 0 ] == 'q' )
             parse_q( command );
+        else if ( strcmp( command, ".end" ) == 0 )
+            break;
         else
             printf( "wtf did u type: %s\n", command );
     }
 
     fclose( f );
 
-    printf( "unknowns: " );
-    for ( int i = 1; i < sys.unknown_list.size(); i++ ) {
-        printf( "%s ", sys.unknown_list[ i ] );
-    }
-    printf( "\n" );
-
-    printf( "equations:\n" );
-    for ( equation_t & eq : sys.equation_list ) {
-        printf( "\tname: %s\n", eq.name );
-        for ( char * term : eq.term_list ) {
-            printf( "\t\t%s\n", term );
+    if ( verbose ) {
+        printf( "unknowns: " );
+        for ( int i = 1; i < sys.unknown_list.size(); i++ ) {
+            printf( "%s ", sys.unknown_list[ i ] );
         }
+        printf( "\n" );
+
+        printf( "equations:\n" );
+        for ( equation_t & eq : sys.equation_list ) {
+            printf( "\tname: %s\n", eq.name );
+            for ( char * term : eq.term_list ) {
+                printf( "\t\t%s\n", term );
+            }
+        }
+        printf( "\n" );
     }
-    printf( "\n" );
 
     int n = sys.equation_list.size();
     double * x = (double *) malloc( ( n + 1 ) * sizeof( double ) );
@@ -661,24 +687,28 @@ int main( int argc, char ** argv )
 
     evaluate_system( x, fx );
 
-    printf( "system at 0: " );
-    for ( int i = 0; i < n; i++ )
-        printf( "% .2le ", fx[ i ] );
-    printf( "\n" );
+    if ( verbose ) {
+        printf( "system at 0: " );
+        for ( int i = 0; i < n; i++ )
+            printf( "% .2le ", fx[ i ] );
+        printf( "\n" );
 
-    evaluate_jacobian( x, j );
-    printf( "jacobian at 0: " );
-    for ( int i = 0; i < n * n; i++ ) {
-        if ( i % n == 0 ) printf( "\n\t" );
-        printf( "% .2le ", j[ i ] );
+        evaluate_jacobian( x, j );
+        printf( "jacobian at 0: " );
+        for ( int i = 0; i < n * n; i++ ) {
+            if ( i % n == 0 ) printf( "\n\t" );
+            printf( "% .2le ", j[ i ] );
+        }
+        printf( "\n" );
     }
-    printf( "\n" );
 
     root_newton( n, x );
 
-    printf( "solve:\n" );
-    for ( int i = 0; i < n; i++ )
-        printf( "\t%5s = % le\n", sys.unknown_list[ i + 1 ], x[ i + 1 ] );
+    if ( verbose ) printf( "solve:\n" );
+    for ( int i = 0; i < n; i++ ) {
+        if ( verbose ) printf( "\t" );
+        printf( "%5s = % le\n", sys.unknown_list[ i + 1 ], x[ i + 1 ] );
+    }
 
     return 0;
 }
