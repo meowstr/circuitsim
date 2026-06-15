@@ -81,7 +81,7 @@ backtrack:
     if ( norm2 > 10. ) {
         alpha /= 2.;
         printf(
-            "root_newton_step: backtrack (dx = %lf df = %lf) \n",
+            "root_newton_step: backtrack (dx = %.2le df = %.2le) \n",
             norm1,
             norm2
         );
@@ -109,11 +109,11 @@ static void root_newton( int n, double * x )
         printf( "root_newton: " );
         printf( "F( " );
         for ( int k = 0; k < n; k++ ) {
-            printf( "%lf ", x[ k + 1 ] );
+            printf( "% .2le ", x[ k + 1 ] );
         }
         printf( ") = " );
         for ( int k = 0; k < n; k++ ) {
-            printf( "%lf ", fx[ k ] );
+            printf( "% .2le ", fx[ k ] );
         }
         printf( "\n" );
 
@@ -281,7 +281,7 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
                        ( exp( Vbc / Vt ) + ( 1. / beta_r ) * exp( Vbc / Vt ) );
             if ( strcmp( unknown, nb_str ) == 0 )
                 return ( -Is / Vt ) * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
-                                       ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+                                        ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
             if ( strcmp( unknown, ne_str ) == 0 )
                 return -( -Is / Vt ) * exp( Vbe / Vt );
 
@@ -295,7 +295,7 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
                 return -( -Is / Vt ) * ( 1. / beta_r ) * exp( Vbc / Vt );
             if ( strcmp( unknown, nb_str ) == 0 )
                 return ( -Is / Vt ) * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) ) +
-                                       ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
+                                        ( 1. / beta_r ) * ( exp( Vbc / Vt ) ) );
             if ( strcmp( unknown, ne_str ) == 0 )
                 return -( -Is / Vt ) * ( 1. / beta_f ) * exp( Vbe / Vt );
 
@@ -435,12 +435,12 @@ static double evaluate_term( double * x, char * term, char * eq_name )
         if ( strcmp( eq_name, nc_str ) == 0 ) {
             // NOTE: negative because I_c sinks current
             return -Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) -
-                          ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+                           ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
         }
         if ( strcmp( eq_name, nb_str ) == 0 ) {
             // NOTE: negative because I_b sinks current
             return -Is * ( ( 1. / beta_f ) * ( exp( Vbe / Vt ) - 1. ) +
-                          ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
+                           ( 1. / beta_r ) * ( exp( Vbc / Vt ) - 1. ) );
         }
         if ( strcmp( eq_name, ne_str ) == 0 ) {
             return Is * ( ( exp( Vbe / Vt ) - exp( Vbc / Vt ) ) +
@@ -511,7 +511,7 @@ static void parse_v( char * command )
 
     snprintf( buffer, 1024, "v %s %s %s", n1, n2, voltage );
     equation_t e;
-    e.name = strdup( "v_source" );
+    e.name = strdup( "vsource" );
     e.term_list.push_back( strdup( buffer ) );
     sys.equation_list.push_back( e );
 
@@ -600,18 +600,17 @@ int main( int argc, char ** argv )
     fclose( f );
 
     printf( "unknowns: " );
-    for ( char * unknown : sys.unknown_list ) {
-        printf( "%s ", unknown );
+    for ( int i = 1; i < sys.unknown_list.size(); i++ ) {
+        printf( "%s ", sys.unknown_list[ i ] );
     }
-    printf( "\n\n" );
+    printf( "\n" );
 
     printf( "equations:\n" );
     for ( equation_t & eq : sys.equation_list ) {
-        printf( "name: %s\n", eq.name );
+        printf( "\tname: %s\n", eq.name );
         for ( char * term : eq.term_list ) {
-            printf( "\t%s\n", term );
+            printf( "\t\t%s\n", term );
         }
-        printf( "\n" );
     }
     printf( "\n" );
 
@@ -629,14 +628,14 @@ int main( int argc, char ** argv )
 
     printf( "system at 0: " );
     for ( int i = 0; i < n; i++ )
-        printf( "%lf ", fx[ i ] );
+        printf( "% .2le ", fx[ i ] );
     printf( "\n" );
 
     evaluate_jacobian( x, j );
     printf( "jacobian at 0: " );
     for ( int i = 0; i < n * n; i++ ) {
-        if ( i % n == 0 ) printf( "\n" );
-        printf( "%lf ", j[ i ] );
+        if ( i % n == 0 ) printf( "\n\t" );
+        printf( "% .2le ", j[ i ] );
     }
     printf( "\n" );
 
@@ -644,7 +643,7 @@ int main( int argc, char ** argv )
 
     printf( "solve:\n" );
     for ( int i = 0; i < n; i++ )
-        printf( "\t%s = %lf\n", sys.unknown_list[ i + 1 ], x[ i + 1 ] );
+        printf( "\t%5s = % le\n", sys.unknown_list[ i + 1 ], x[ i + 1 ] );
 
     return 0;
 }
