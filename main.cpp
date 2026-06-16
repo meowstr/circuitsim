@@ -295,6 +295,10 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
             printf( "unknown bjt type: %s\n", bjt_type );
             return 0;
         }
+
+        // NOTE: im not 100% confident in these 9 partials. maybe check should
+        // check my work again here
+
         if ( strcmp( eq_name, nc_str ) == 0 ) {
             if ( strcmp( unknown, nc_str ) == 0 )
                 return dir * ( -Is / Vt ) *
@@ -346,6 +350,11 @@ evaluate_term_partial( double * x, char * term, char * unknown, char * eq_name )
 
         printf( "bjt not in kcl equation\n" );
         return 0;
+    }
+
+    if ( term[ 0 ] == 'c' ) {
+        // constant has 0 derivative ofc
+        return 0.;
     }
 
     printf( "unknown equation term: %s\n", term );
@@ -492,6 +501,12 @@ static double evaluate_term( double * x, char * term, char * eq_name )
         return 0;
     }
 
+    if ( term[ 0 ] == 'c' ) {
+        char * amps_str = strtok( nullptr, delims );
+        double amps = atof( amps_str );
+        return amps;
+    }
+
     printf( "unknown equation term: %s\n", term );
 
     return 0;
@@ -560,6 +575,22 @@ static void parse_v( char * command )
     add_to_kcl( n1, buffer );
 
     snprintf( buffer, 1024, "%s +", current_name );
+    add_to_kcl( n2, buffer );
+}
+
+static void parse_i( char * command )
+{
+    char * n1 = strtok( nullptr, delims );
+    char * n2 = strtok( nullptr, delims );
+    char * amps_str = strtok( nullptr, delims );
+    double amps = atof( amps_str );
+
+    // add to n1 KCL: -amps
+    // add to n2 KCL: amps
+
+    snprintf( buffer, 1024, "c %le", -amps );
+    add_to_kcl( n1, buffer );
+    snprintf( buffer, 1024, "c %le", amps );
     add_to_kcl( n2, buffer );
 }
 
@@ -644,6 +675,8 @@ int main( int argc, char ** argv )
 
         if ( command[ 0 ] == 'v' )
             parse_v( command );
+        else if ( command[ 0 ] == 'i' )
+            parse_i( command );
         else if ( command[ 0 ] == 'r' )
             parse_r( command );
         else if ( command[ 0 ] == 'd' )
