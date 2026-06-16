@@ -1,19 +1,24 @@
 # circuitsim
 Refer to my tutorial at https://github.com/meowstr/circuitsim_tutorial to get an idea of how it works.
 
+Supports:
+- Voltage sources
+- Resistors
+- Diodes
+- BJT's (NPN and PNP)
+
 ```
-loading test.txt...
-unknowns: i0 1 i1 2 v1 v3 v2
+unknowns: i_v1 1 i_v2 2 v1 v3 v2
 equations:
         name: vsource
                 v 0 1 5
         name: 1
-                i0 +
+                i_v1 +
                 r 1 v1 1000
         name: vsource
                 v 0 2 9
         name: 2
-                i1 +
+                i_v2 +
                 r 2 v2 1000
         name: v1
                 r 1 v1 1000
@@ -65,9 +70,9 @@ root_newton: F(  2.18e-03  5.00e+00  7.74e-03  9.00e+00  2.82e+00  6.33e-01  1.2
 root_newton: F(  2.18e-03  5.00e+00  7.74e-03  9.00e+00  2.82e+00  6.33e-01  1.26e+00 ) =  0.00e+00  0.00e+00  0.00e+00  0.00e+00  0.00e+00  1.30e-17  0.00e+00
 
 solve:
-           i0 =  2.183490e-03
+         i_v1 =  2.183490e-03
             1 =  5.000000e+00
-           i1 =  7.740174e-03
+         i_v2 =  7.740174e-03
             2 =  9.000000e+00
            v1 =  2.816510e+00
            v3 =  6.330193e-01
