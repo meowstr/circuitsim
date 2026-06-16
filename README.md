@@ -8,27 +8,27 @@ Supports:
 - BJT's (NPN and PNP)
 
 ```
-unknowns: i_v1 1 i_v2 2 v1 v3 v2
+unknowns: i_v1 5v i_v2 9v v1 v3 v2
 equations:
         name: vsource
-                v 0 1 5
-        name: 1
+                v 0 5v 5
+        name: 5v
                 i_v1 +
-                r 1 v1 1000
+                r 5v v1 1000
         name: vsource
-                v 0 2 9
-        name: 2
+                v 0 9v 9
+        name: 9v
                 i_v2 +
-                r 2 v2 1000
+                r 9v v2 1000
         name: v1
-                r 1 v1 1000
+                r 5v v1 1000
                 r v1 v3 1000
         name: v3
                 r v1 v3 1000
                 d v3 0
                 d v2 v3
         name: v2
-                r 2 v2 1000
+                r 9v v2 1000
                 d v2 v3
 
 system at 0: -5.00e+00  0.00e+00 -9.00e+00  0.00e+00  0.00e+00  0.00e+00  0.00e+00
@@ -71,9 +71,9 @@ root_newton: F(  2.18e-03  5.00e+00  7.74e-03  9.00e+00  2.82e+00  6.33e-01  1.2
 
 solve:
          i_v1 =  2.183490e-03
-            1 =  5.000000e+00
+           5v =  5.000000e+00
          i_v2 =  7.740174e-03
-            2 =  9.000000e+00
+           9v =  9.000000e+00
            v1 =  2.816510e+00
            v3 =  6.330193e-01
            v2 =  1.259826e+00
