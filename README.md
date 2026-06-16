@@ -7,7 +7,23 @@ Supports:
 - Diodes
 - BJT's (NPN and PNP)
 
+## Example
+<img src="https://github.com/meowstr/circuitsim_tutorial/blob/main/schem.png" width="300">
+
+Input file (test.txt):
 ```
+v1 0 5v 5
+v2 0 9v 9
+r1 5v v1 1000
+r2 v1 v3 1000
+r3 9v v2 1000
+d1 v3 0
+d2 v2 v3 
+```
+
+Output:
+```
+$ ./sim test.txt
 unknowns: i_v1 5v i_v2 9v v1 v3 v2
 equations:
         name: vsource
