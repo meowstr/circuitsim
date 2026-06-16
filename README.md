@@ -2,6 +2,7 @@
 Refer to my tutorial at https://github.com/meowstr/circuitsim_tutorial to get an idea of how it works.
 
 Supports:
+- Current sources
 - Voltage sources
 - Resistors
 - Diodes
