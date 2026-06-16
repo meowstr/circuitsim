@@ -71,7 +71,7 @@ backtrack:
     // keep changes in x small
     double norm1 = 0;
     for ( int i = 0; i < n + 1; i++ )
-        norm1 = fmax( norm1, abs( new_x[ i ] - x[ i ] ) );
+        norm1 = fmax( norm1, fabs( new_x[ i ] - x[ i ] ) );
     // if ( norm1 > 1. ) {
     //     alpha /= 2.;
     //     goto backtrack;
@@ -80,7 +80,7 @@ backtrack:
     // keep changes in fx small
     double norm2 = 0;
     for ( int i = 0; i < n; i++ )
-        norm2 = fmax( norm2, abs( fx[ i ] - old_fx[ i ] ) );
+        norm2 = fmax( norm2, fabs( fx[ i ] - old_fx[ i ] ) );
     if ( norm2 > 10. ) {
         alpha /= 2.;
         if ( verbose ) {
@@ -716,11 +716,8 @@ int main( int argc, char ** argv )
     for ( int i = 0; i < n + 1; i++ )
         x[ i ] = 0;
 
-    // x[ 2 ] = 10;
-
-    evaluate_system( x, fx );
-
     if ( verbose ) {
+        evaluate_system( x, fx );
         printf( "system at 0: " );
         for ( int i = 0; i < n; i++ )
             printf( "% .2le ", fx[ i ] );
@@ -737,7 +734,20 @@ int main( int argc, char ** argv )
 
     root_newton( n, x );
 
-    if ( verbose ) printf( "solve:\n" );
+    evaluate_system( x, fx );
+    double worst_residual = fabs( fx[ 0 ] );
+    for ( int i = 1; i < n; i++ )
+        worst_residual = fmax( worst_residual, fabs( fx[ i ] ) );
+
+    if ( verbose ) printf( "residual: %le\n", worst_residual );
+
+    // TODO: kinda arbitrary...
+    if ( worst_residual > 1E-6 ) {
+        printf( "convergence failed\n" );
+        return 1;
+    }
+
+    if ( verbose ) printf( "solution:\n" );
     for ( int i = 0; i < n; i++ ) {
         if ( verbose ) printf( "\t" );
         printf( "%5s = % le\n", sys.unknown_list[ i + 1 ], x[ i + 1 ] );
