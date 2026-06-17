@@ -659,7 +659,7 @@ int main( int argc, char ** argv )
         f = fopen( argv[ optind ], "r" );
     } else {
         f = stdin;
-        printf( "reading stdin\n" );
+        if ( verbose ) printf( "reading stdin\n" );
     }
 
     if ( !f ) {
