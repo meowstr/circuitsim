@@ -195,6 +195,14 @@ int main( int argc, char ** argv )
 
     FILE * f = stdin;
 
+    if ( argc >= 2 ) {
+        f = fopen( argv[ 1 ], "r" );
+        if ( !f ) {
+            printf( "failed to read file\n" );
+            return 1;
+        }
+    }
+
     char line[ 1024 ];
     char buffer[ 1024 ];
     while ( fgets( line, 1024, f ) ) {
