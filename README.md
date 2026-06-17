@@ -7,9 +7,11 @@ Supports:
 - Resistors
 - Diodes
 - BJT's (NPN and PNP)
+- Capacitors (Transient analysis only)
+- Inductors (Transient analysis only)
 
-## Example
-<img src="https://github.com/meowstr/circuitsim_tutorial/blob/main/schem.png" width="300">
+## Operating point analaysis example
+<img src="https://github.com/meowstr/circuitsim/blob/main/schem.png" width="300">
 
 Input file (test.txt):
 ```
@@ -96,3 +98,23 @@ solution:
            v3 =  6.330193e-01
            v2 =  1.259826e+00
 ```
+
+## Transient analysis example
+
+Input file (tran.txt):
+```
+v1 0 5v 5
+r1 5v 1 1000
+c1 1 0 0.002
+.step 0.1 200
+.plot 1
+```
+
+Command:
+```
+$ cat tran.txt | ./tran
+```
+
+Output:
+
+<img src="https://github.com/meowstr/circuitsim/blob/main/plot.png" width="500">
