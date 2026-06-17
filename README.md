@@ -10,7 +10,7 @@ Supports:
 - Capacitors (Transient analysis only)
 - Inductors (Transient analysis only)
 
-## Operating point analaysis example
+## Operating point analysis example
 <img src="https://github.com/meowstr/circuitsim/blob/main/schem.png" width="300">
 
 Input file (test.txt):
