@@ -112,7 +112,7 @@ c1 1 0 0.002
 
 Command:
 ```
-$ cat tran.txt | ./tran
+$ ./tran tran.txt
 ```
 
 Output:
